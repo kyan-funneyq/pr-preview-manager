@@ -1,0 +1,66 @@
+name: preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Every run pushes to the same gh-pages branch, so runs are serialized, never cancelled.
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+env:
+  PR: ${{ github.event.pull_request.number }}
+  SHA: ${{ github.event.pull_request.head.sha }}
+  URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.pull_request.number }}/
+
+jobs:
+  publish:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: make setup verify
+      - run: python src/build_site.py --pr "$PR" --sha "$SHA" --out dist
+      - uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          path: gh-pages
+      - run: python src/previewctl.py prepare --pr "$PR" --sha "$SHA" --source dist --target gh-pages
+      - name: Commit and push gh-pages
+        working-directory: gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Preview PR #$PR at $SHA"
+          git push
+      - name: Job summary
+        run: |
+          echo "Preview for PR #$PR at \`$SHA\`: $URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Wait until the preview is live
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsSL "$URL?v=$SHA-$i" | grep -q "$SHA"; then
+              echo "Live after about $((i * 10))s"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Preview not live after 5 minutes: $URL"
+          exit 1
+      - name: Comment on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "Preview for \`$SHA\`: $URL"

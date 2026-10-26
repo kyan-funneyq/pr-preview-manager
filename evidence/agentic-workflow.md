@@ -5,21 +5,24 @@
 - **Claude Code (Opus 5.5)**: the primary coding agent, used for design, planning, implementation and verification.
 - **Codex code review**: automatic review of each PR against the rules in `AGENTS.md`.
 
-## How the work was driven
+## How the work was driven: the RPI framework
 
-Claude Code ran three slash commands in sequence. Each one produced a document that the next one built on:
+The work followed a **Research → Plan → Implement (RPI)** workflow, run through Claude Code slash commands. Each stage writes a document that the next stage reads, so the agent works from written, reviewed context instead of re-deriving it each time. A human reviews and approves each document before the next stage starts.
 
-| Step | Command | What it produced |
-|---|---|---|
-| 1. Design | `/create_design` | An engineering design doc built from the requirements: architecture, flows, key decisions, risks. Revised several times to match the brief and MVP scope. |
-| 2. Plan | `/create_plan` | A phased implementation plan. For each phase: exact files, code, and success criteria that can be checked by running a command. Phases go from local MVP to CI, safe CLI, publish, close path and packaging. |
-| 3. Build | `/implement_plan` | Implementation one phase at a time, running every automated check in the plan and ticking it off. The agent stops after each phase for human review and commit. |
+| Stage | Command | Purpose | Used in this project |
+|---|---|---|---|
+| Research | `/research_codebase` | Investigate existing code and produce a research doc with file:line references | Not needed: the repo started empty, so there was no codebase to research |
+| Research (design) | `/create_design` | Turn requirements and research into a high-level design: architecture, flows, decisions, risks | Yes: produced the design doc from the requirements and was revised to match the brief and MVP scope |
+| Plan | `/create_plan` | Write a phased plan: exact files, code, and success criteria checkable by running a command | Yes: six phases from local MVP to CI, safe CLI, publish, close path and packaging |
+| Implement | `/implement_plan` | Build one phase at a time, run the plan's checks, tick them off, stop for human review | Yes: each phase ends with passing checks, then the human commits and opens a PR |
+
+For later changes to the existing code, the loop starts at `/research_codebase`.
 
 Standing instructions the agent followed throughout:
 - `CLAUDE.md`: commands, fixed values, and code and submission rules, each written so it can be checked.
 - `AGENTS.md`: review rules that Codex checks on every PR.
 
-The design and plan documents were kept as local working notes. Their content is summarised in `evidence/design.md`.
+The design and plan documents were kept as local working notes. The plan's phases appear in the timeline below.
 
 ## Timeline
 

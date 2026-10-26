@@ -34,7 +34,7 @@ Timer started **2026-10-26 23:40** (local time).
 | 23:40 | 1 Local MVP | `/implement_plan`, phase 1: `site/`, `src/build_site.py`, `src/previewctl.py prepare`, Makefile, `pyproject.toml`, first tests | Merged as [PR #1](https://github.com/kyan-funneyq/pr-preview-manager/pull/1) |
 | 00:37 | 2 CI | `/implement_plan`, phase 2: `.github/workflows/ci.yml` running `make setup verify` on PRs and pushes to `main`, read-only permissions. Ran `make setup verify` in a clean copy of the repo to imitate a CI run | Asked why the actions weren't on their latest versions. The agent had picked them from memory; it then looked up the real latest releases with `gh api`, read the v7 release notes and moved to `checkout@v7` and `setup-python@v7`. Merged as [PR #2](https://github.com/kyan-funneyq/pr-preview-manager/pull/2); CI green on the PR and on `main` |
 | 00:45 | 3 Safe CLI | `/implement_plan`, phase 3: symlink and containment checks, stage → swap → restore in `prepare`, `remove`, `status`, and 21 new tests (33 in total). To show the new tests catch the issues Codex reported on PR #1, it ran them against the phase 1 `previewctl.py`; they fail there on source symlinks, symlinked preview folders and the failed swap | |
-| 01:24 | 4 Publish | `/implement_plan`, phase 4: `.github/workflows/preview.yml` publish job. Checked which `checkout@v7` inputs affect PR checkouts. Parsed the YAML and dry-ran the publish steps against a scratch clone of `gh-pages` | Started phase 4 on a branch stacked on PR #3 while its Codex review was still running |
+| 01:24 | 4–5 Publish and close | `/implement_plan`, phases 4 and 5: `.github/workflows/preview.yml` with a `publish` job and a `remove` job. Checked which `checkout@v7` inputs affect PR checkouts. Parsed the YAML and dry-ran both paths against a scratch clone of `gh-pages` | Asked whether the PR's own preview could be cleaned up; the close job was moved into the same PR so it removes its own preview on merge |
 
 ## Codex review findings
 
@@ -45,6 +45,7 @@ Timer started **2026-10-26 23:40** (local time).
 | #1 | The old preview is deleted before the copy, so a failed copy loses it (P1) | Known MVP gap; fixed in phase 3 by staging, swapping and restoring |
 | #1 | Invalid-input tests don't compare existing previews before and after (P1) | Known MVP gap; fixed in phase 3 by hashing the existing previews before and after |
 | #2 | No findings | – |
+| #3 | No result: the review was still showing "Running" when the PR was merged, even after an `@codex review` comment | Merged on green CI and the 33 tests, which include the tests written for the #1 findings |
 
 All four findings matched `AGENTS.md` rules 1–3 and items already planned for phase 3. Phase 1 was kept deliberately simple, and the review confirmed that the review rules catch exactly those gaps.
 
@@ -61,3 +62,4 @@ All four findings matched `AGENTS.md` rules 1–3 and items already planned for 
   - During `/implement_plan`, the agent added its own pre-run check: parsing `preview.yml` as YAML. It caught two `run:` lines that GitHub would have rejected, because `: ` and ` #` break a plain YAML string. Both were fixed before the workflow ran.
   - This check wasn't part of the workflow yet, so it was added to `CLAUDE.md` as a standing rule: every workflow file must parse, and any `run:` line containing `: ` or ` #` must be a block scalar. Later phases follow it.
   - A dry run against a scratch clone of `gh-pages` confirmed that only `pr-preview/` files change and that the live check finds the full SHA.
+  - A close-path dry run with two previews deleted only the closed PR's folder and manifest entry; the other preview stayed. Closing a PR that was never published staged nothing.

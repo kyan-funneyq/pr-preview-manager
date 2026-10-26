@@ -30,11 +30,14 @@ Timer started **2026-10-26 23:40** (local time).
 
 | Time | Phase | What the agent did | Human steering |
 |---|---|---|---|
-| Pre-timer | Framing | `/create_design` and `/create_plan`; wrote `CLAUDE.md` and `AGENTS.md` | Cut edge-case handling to keep an MVP scope. Kept the local demo required after re-reading the brief. Moved code into `src/`. Chose one PR per phase so Codex reviews each one. |
-| 23:40 | 1 Local MVP | `/implement_plan`, phase 1: `site/`, `src/build_site.py`, `src/previewctl.py prepare`, Makefile, `pyproject.toml`, first tests | Merged as [PR #1](https://github.com/kyan-funneyq/pr-preview-manager/pull/1) |
-| 00:37 | 2 CI | `/implement_plan`, phase 2: `.github/workflows/ci.yml` running `make setup verify` on PRs and pushes to `main`, read-only permissions. Ran `make setup verify` in a clean copy of the repo to imitate a CI run | Asked why the actions weren't on their latest versions. The agent had picked them from memory; it then looked up the real latest releases with `gh api`, read the v7 release notes and moved to `checkout@v7` and `setup-python@v7`. Merged as [PR #2](https://github.com/kyan-funneyq/pr-preview-manager/pull/2); CI green on the PR and on `main` |
-| 00:45 | 3 Safe CLI | `/implement_plan`, phase 3: symlink and containment checks, stage → swap → restore in `prepare`, `remove`, `status`, and 21 new tests (33 in total). To show the new tests catch the issues Codex reported on PR #1, it ran them against the phase 1 `previewctl.py`; they fail there on source symlinks, symlinked preview folders and the failed swap | |
-| 01:24 | 4–5 Publish and close | `/implement_plan`, phases 4 and 5: `.github/workflows/preview.yml` with a `publish` job and a `remove` job. Checked which `checkout@v7` inputs affect PR checkouts. Parsed the YAML and dry-ran both paths against a scratch clone of `gh-pages` | Asked whether the PR's own preview could be cleaned up; the close job was moved into the same PR so it removes its own preview on merge |
+| Pre-timer | Framing | `/create_design`, `/create_plan`, `CLAUDE.md`, `AGENTS.md` | Cut to MVP scope; kept local demo required per the brief |
+| 23:40 | 1 Local MVP | Site, build script, `prepare`, Makefile, first tests | Merged [#1](https://github.com/kyan-funneyq/pr-preview-manager/pull/1) |
+| 00:37 | 2 CI | `ci.yml` running `make setup verify` | Asked for latest action versions → bumped to v7; merged [#2](https://github.com/kyan-funneyq/pr-preview-manager/pull/2) |
+| 00:45 | 3 Safe CLI | Symlink/path checks, swap and restore, `remove`, `status`, 33 tests | Merged [#3](https://github.com/kyan-funneyq/pr-preview-manager/pull/3) |
+| 01:24 | 4–5 Publish and close | `preview.yml` publish and remove jobs; YAML check and dry runs | Moved close job into same PR; merged [#4](https://github.com/kyan-funneyq/pr-preview-manager/pull/4); AC8 via [#5](https://github.com/kyan-funneyq/pr-preview-manager/pull/5)/[#6](https://github.com/kyan-funneyq/pr-preview-manager/pull/6) |
+| 02:28 | 6 Package | README, evidence pack, fresh-clone check | Spotted a cached removed preview → confirmed 404, documented |
+
+Timer ended **02:38** (local time), when this final PR was merged. Total: **2h 58m**.
 
 ## Codex review
 

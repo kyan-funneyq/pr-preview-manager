@@ -28,7 +28,19 @@ Timer started **2026-10-26 23:40** (local time).
 | Time | Phase | What the agent did | Human steering |
 |---|---|---|---|
 | Pre-timer | Framing | `/create_design` and `/create_plan`; wrote `CLAUDE.md` and `AGENTS.md` | Cut edge-case handling to keep an MVP scope. Kept the local demo required after re-reading the brief. Moved code into `src/`. Chose one PR per phase so Codex reviews each one. |
-| 23:40 | 1 Local MVP | `/implement_plan`, phase 1: `site/`, `src/build_site.py`, `src/previewctl.py prepare`, Makefile, `pyproject.toml`, first tests | |
+| 23:40 | 1 Local MVP | `/implement_plan`, phase 1: `site/`, `src/build_site.py`, `src/previewctl.py prepare`, Makefile, `pyproject.toml`, first tests | Merged as [PR #1](https://github.com/kyan-funneyq/pr-preview-manager/pull/1) |
+| 00:37 | 2 CI | `/implement_plan`, phase 2: `.github/workflows/ci.yml` running `make setup verify` on PRs and pushes to `main`, read-only permissions. Ran `make setup verify` in a clean copy of the repo to imitate a CI run | |
+
+## Codex review findings
+
+| PR | Finding (severity) | Response |
+|---|---|---|
+| #1 | `prepare` follows a symlinked `pr-preview/` and writes outside the preview root (P1) | Known MVP gap; fixed in phase 3 by a containment check |
+| #1 | Symlinks in the source are copied into the published site (P1) | Known MVP gap; fixed in phase 3 by rejecting symlinks |
+| #1 | The old preview is deleted before the copy, so a failed copy loses it (P1) | Known MVP gap; fixed in phase 3 by staging, swapping and restoring |
+| #1 | Invalid-input tests don't compare existing previews before and after (P1) | Known MVP gap; fixed in phase 3 by hashing the existing previews before and after |
+
+All four findings matched `AGENTS.md` rules 1–3 and items already planned for phase 3. Phase 1 was kept deliberately simple, and the review confirmed that the review rules catch exactly those gaps.
 
 ## How output was reviewed
 

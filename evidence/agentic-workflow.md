@@ -36,18 +36,13 @@ Timer started **2026-10-26 23:40** (local time).
 | 00:45 | 3 Safe CLI | `/implement_plan`, phase 3: symlink and containment checks, stage → swap → restore in `prepare`, `remove`, `status`, and 21 new tests (33 in total). To show the new tests catch the issues Codex reported on PR #1, it ran them against the phase 1 `previewctl.py`; they fail there on source symlinks, symlinked preview folders and the failed swap | |
 | 01:24 | 4–5 Publish and close | `/implement_plan`, phases 4 and 5: `.github/workflows/preview.yml` with a `publish` job and a `remove` job. Checked which `checkout@v7` inputs affect PR checkouts. Parsed the YAML and dry-ran both paths against a scratch clone of `gh-pages` | Asked whether the PR's own preview could be cleaned up; the close job was moved into the same PR so it removes its own preview on merge |
 
-## Codex review findings
+## Codex review
 
-| PR | Finding (severity) | Response |
-|---|---|---|
-| #1 | `prepare` follows a symlinked `pr-preview/` and writes outside the preview root (P1) | Known MVP gap; fixed in phase 3 by a containment check |
-| #1 | Symlinks in the source are copied into the published site (P1) | Known MVP gap; fixed in phase 3 by rejecting symlinks |
-| #1 | The old preview is deleted before the copy, so a failed copy loses it (P1) | Known MVP gap; fixed in phase 3 by staging, swapping and restoring |
-| #1 | Invalid-input tests don't compare existing previews before and after (P1) | Known MVP gap; fixed in phase 3 by hashing the existing previews before and after |
-| #2 | No findings | – |
-| #3 | No result: the review was still showing "Running" when the PR was merged, even after an `@codex review` comment | Merged on green CI and the 33 tests, which include the tests written for the #1 findings |
+Every finding was checked before acting on it:
 
-All four findings matched `AGENTS.md` rules 1–3 and items already planned for phase 3. Phase 1 was kept deliberately simple, and the review confirmed that the review rules catch exactly those gaps.
+- **PR #1, four P1 findings:** symlinks, writing outside the preview root, no restore on a failed copy, and tests not checking existing previews. All were known MVP gaps already planned for phase 3, and phase 3 fixed them.
+- **PR #4, valid finding:** the concurrency group kept only one waiting run. Fixed with `queue: max`, after checking GitHub's current docs.
+- **PR #4, rejected finding:** "`GITHUB_TOKEN` pushes don't trigger a Pages build". Not reproduced: the same commit's run had already triggered a Pages deployment and passed the live check.
 
 ## How output was reviewed
 

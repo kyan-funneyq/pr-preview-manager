@@ -34,6 +34,7 @@ Timer started **2026-10-26 23:40** (local time).
 | 23:40 | 1 Local MVP | `/implement_plan`, phase 1: `site/`, `src/build_site.py`, `src/previewctl.py prepare`, Makefile, `pyproject.toml`, first tests | Merged as [PR #1](https://github.com/kyan-funneyq/pr-preview-manager/pull/1) |
 | 00:37 | 2 CI | `/implement_plan`, phase 2: `.github/workflows/ci.yml` running `make setup verify` on PRs and pushes to `main`, read-only permissions. Ran `make setup verify` in a clean copy of the repo to imitate a CI run | Asked why the actions weren't on their latest versions. The agent had picked them from memory; it then looked up the real latest releases with `gh api`, read the v7 release notes and moved to `checkout@v7` and `setup-python@v7`. Merged as [PR #2](https://github.com/kyan-funneyq/pr-preview-manager/pull/2); CI green on the PR and on `main` |
 | 00:45 | 3 Safe CLI | `/implement_plan`, phase 3: symlink and containment checks, stage → swap → restore in `prepare`, `remove`, `status`, and 21 new tests (33 in total). To show the new tests catch the issues Codex reported on PR #1, it ran them against the phase 1 `previewctl.py`; they fail there on source symlinks, symlinked preview folders and the failed swap | |
+| 01:24 | 4 Publish | `/implement_plan`, phase 4: `.github/workflows/preview.yml` publish job. Checked which `checkout@v7` inputs affect PR checkouts. Parsed the YAML and dry-ran the publish steps against a scratch clone of `gh-pages` | Started phase 4 on a branch stacked on PR #3 while its Codex review was still running |
 
 ## Codex review findings
 
@@ -56,3 +57,7 @@ All four findings matched `AGENTS.md` rules 1–3 and items already planned for 
   - both previews and `style.css` are fetched from a local `http.server`;
   - `--pr abc` exits with code 1.
 - Ruff caught one line over the length limit on the first run; it was fixed before the phase was finished.
+- Phase 4, before the first real run:
+  - During `/implement_plan`, the agent added its own pre-run check: parsing `preview.yml` as YAML. It caught two `run:` lines that GitHub would have rejected, because `: ` and ` #` break a plain YAML string. Both were fixed before the workflow ran.
+  - This check wasn't part of the workflow yet, so it was added to `CLAUDE.md` as a standing rule: every workflow file must parse, and any `run:` line containing `: ` or ` #` must be a block scalar. Later phases follow it.
+  - A dry run against a scratch clone of `gh-pages` confirmed that only `pr-preview/` files change and that the live check finds the full SHA.

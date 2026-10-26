@@ -58,7 +58,11 @@ gh pr view <N> --comments                # preview link comment
 
 ## Submission rules
 
-- Commit after each milestone, only when `make verify` passes. Never squash, rebase, amend pushed commits or force-push. Merge demo PRs with a merge commit.
+- The human makes every commit, push, PR and merge. The agent never runs `git commit`, `git push`, `git reset`, `gh pr create` or `gh pr merge`. Read-only commands such as `git status`, `git diff`, `git log`, `gh run list` and `gh pr view` are fine.
+- When a phase's changes are ready, the agent stops and lists the files and suggested commit messages for the human to commit.
+- Each phase gets its own branch (for example `feat/safe-cli`) with several small commits, then one PR. Nothing is committed directly to `main`.
+- Commits happen only when `make verify` passes. A PR is merged only when CI is green, using `gh pr merge --merge`. No squashing, rebasing, amending pushed commits or force-pushing.
+- After a Codex review lands, record it in `evidence/agentic-workflow.md`. Fix any real finding in the next PR.
 - Never fake results. An AC counts as met only when it links to a real PR or workflow run, or quotes real command output. Report failures and skipped steps as they are.
 - Never commit `thoughts/`, the exercise brief, secrets, tokens or personal data. Use sample data only.
 - `README.md` covers: what it does, prerequisites, setup, `make demo`, `make verify`, one example including a rejection with exit `1`, known limitations, and a link to `evidence/`.

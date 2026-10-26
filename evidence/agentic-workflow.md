@@ -37,7 +37,7 @@ Timer started **2026-10-26 23:40** (local time).
 | 01:24 | 4–5 Publish and close | `preview.yml` publish and remove jobs; YAML check and dry runs | Moved close job into same PR; merged [#4](https://github.com/kyan-funneyq/pr-preview-manager/pull/4); AC8 via [#5](https://github.com/kyan-funneyq/pr-preview-manager/pull/5)/[#6](https://github.com/kyan-funneyq/pr-preview-manager/pull/6) |
 | 02:28 | 6 Package | README, evidence pack, fresh-clone check | Spotted a cached removed preview → confirmed 404, documented |
 
-Timer ended **02:38** (local time), when this final PR was merged. Total: **2h 58m**.
+Timer ended **02:40** (local time), when this final PR was merged. Total: **3h 00m**.
 
 ## Codex review
 

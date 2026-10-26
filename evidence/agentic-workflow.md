@@ -5,21 +5,24 @@
 - **Claude Code (Opus 5.5)**: the primary coding agent, used for design, planning, implementation and verification.
 - **Codex code review**: automatic review of each PR against the rules in `AGENTS.md`.
 
-## How the work was driven
+## How the work was driven: the RPI framework
 
-Claude Code ran three slash commands in sequence. Each one produced a document that the next one built on:
+The work followed a **Research → Plan → Implement (RPI)** workflow, run through Claude Code slash commands. Each stage writes a document that the next stage reads, so the agent works from written, reviewed context instead of re-deriving it each time. A human reviews and approves each document before the next stage starts.
 
-| Step | Command | What it produced |
-|---|---|---|
-| 1. Design | `/create_design` | An engineering design doc built from the requirements: architecture, flows, key decisions, risks. Revised several times to match the brief and MVP scope. |
-| 2. Plan | `/create_plan` | A phased implementation plan. For each phase: exact files, code, and success criteria that can be checked by running a command. Phases go from local MVP to CI, safe CLI, publish, close path and packaging. |
-| 3. Build | `/implement_plan` | Implementation one phase at a time, running every automated check in the plan and ticking it off. The agent stops after each phase for human review and commit. |
+| Stage | Command | Purpose | Used in this project |
+|---|---|---|---|
+| Research | `/research_codebase` | Investigate existing code and produce a research doc with file:line references | Not needed: the repo started empty, so there was no codebase to research |
+| Research (design) | `/create_design` | Turn requirements and research into a high-level design: architecture, flows, decisions, risks | Yes: produced the design doc from the requirements and was revised to match the brief and MVP scope |
+| Plan | `/create_plan` | Write a phased plan: exact files, code, and success criteria checkable by running a command | Yes: six phases from local MVP to CI, safe CLI, publish, close path and packaging |
+| Implement | `/implement_plan` | Build one phase at a time, run the plan's checks, tick them off, stop for human review | Yes: each phase ends with passing checks, then the human commits and opens a PR |
+
+For later changes to the existing code, the loop starts at `/research_codebase`.
 
 Standing instructions the agent followed throughout:
 - `CLAUDE.md`: commands, fixed values, and code and submission rules, each written so it can be checked.
 - `AGENTS.md`: review rules that Codex checks on every PR.
 
-The design and plan documents were kept as local working notes. Their content is summarised in `evidence/design.md`.
+The design and plan documents were kept as local working notes. The plan's phases appear in the timeline below.
 
 ## Timeline
 
@@ -29,7 +32,8 @@ Timer started **2026-10-26 23:40** (local time).
 |---|---|---|---|
 | Pre-timer | Framing | `/create_design` and `/create_plan`; wrote `CLAUDE.md` and `AGENTS.md` | Cut edge-case handling to keep an MVP scope. Kept the local demo required after re-reading the brief. Moved code into `src/`. Chose one PR per phase so Codex reviews each one. |
 | 23:40 | 1 Local MVP | `/implement_plan`, phase 1: `site/`, `src/build_site.py`, `src/previewctl.py prepare`, Makefile, `pyproject.toml`, first tests | Merged as [PR #1](https://github.com/kyan-funneyq/pr-preview-manager/pull/1) |
-| 00:37 | 2 CI | `/implement_plan`, phase 2: `.github/workflows/ci.yml` running `make setup verify` on PRs and pushes to `main`, read-only permissions. Ran `make setup verify` in a clean copy of the repo to imitate a CI run | |
+| 00:37 | 2 CI | `/implement_plan`, phase 2: `.github/workflows/ci.yml` running `make setup verify` on PRs and pushes to `main`, read-only permissions. Ran `make setup verify` in a clean copy of the repo to imitate a CI run | Asked why the actions weren't on their latest versions. The agent had picked them from memory; it then looked up the real latest releases with `gh api`, read the v7 release notes and moved to `checkout@v7` and `setup-python@v7`. Merged as [PR #2](https://github.com/kyan-funneyq/pr-preview-manager/pull/2); CI green on the PR and on `main` |
+| 00:45 | 3 Safe CLI | `/implement_plan`, phase 3: symlink and containment checks, stage → swap → restore in `prepare`, `remove`, `status`, and 21 new tests (33 in total). To show the new tests catch the issues Codex reported on PR #1, it ran them against the phase 1 `previewctl.py`; they fail there on source symlinks, symlinked preview folders and the failed swap | |
 
 ## Codex review findings
 
@@ -39,6 +43,7 @@ Timer started **2026-10-26 23:40** (local time).
 | #1 | Symlinks in the source are copied into the published site (P1) | Known MVP gap; fixed in phase 3 by rejecting symlinks |
 | #1 | The old preview is deleted before the copy, so a failed copy loses it (P1) | Known MVP gap; fixed in phase 3 by staging, swapping and restoring |
 | #1 | Invalid-input tests don't compare existing previews before and after (P1) | Known MVP gap; fixed in phase 3 by hashing the existing previews before and after |
+| #2 | No findings | – |
 
 All four findings matched `AGENTS.md` rules 1–3 and items already planned for phase 3. Phase 1 was kept deliberately simple, and the review confirmed that the review rules catch exactly those gaps.
 

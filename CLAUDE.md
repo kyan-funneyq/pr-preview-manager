@@ -31,6 +31,8 @@ python3 src/previewctl.py prepare --pr 42 --sha abc1234 --source dist/ --target 
 python3 src/previewctl.py remove  --pr 42 --target .preview-root
 python3 src/previewctl.py status  --target .preview-root
 
+ruby -ryaml -e 'ARGV.each { |f| YAML.load_file(f); puts "#{f}: ok" }' .github/workflows/*.yml   # check workflow YAML parses
+
 gh run list --workflow preview.yml -L 5  # recent preview runs
 gh run view <run-id> --log-failed        # why a run failed
 gh pr view <N> --comments                # preview link comment
@@ -41,7 +43,7 @@ gh pr view <N> --comments                # preview link comment
 - Pages source: `gh-pages` branch, root, contains `.nojekyll`.
 - Preview folder: `pr-preview/pr-<N>/`. Manifest: `pr-preview/previews.json` = `{"<N>": {"sha": "...", "updated_at": "..."}}`.
 - `previewctl.py` exit codes: `0` success, `1` validation rejected, `2` unexpected error.
-- Workflow: concurrency group `gh-pages`, `cancel-in-progress: false`; permissions `contents: write`, `pull-requests: write`.
+- Workflow: concurrency group `gh-pages`, `cancel-in-progress: false`, `queue: max`; permissions `contents: write`, `pull-requests: write`.
 - Live check: poll every 10s, for at most 5 min, until the page contains the SHA.
 
 ## Code rules
@@ -55,6 +57,7 @@ gh pr view <N> --comments                # preview link comment
 - Links in `site/` are relative: no `href` or `src` starts with `/` or `http`.
 - The workflow uses `github.event.pull_request.head.sha` for the build, the live check and the PR comment.
 - The workflow writes the preview URL to `$GITHUB_STEP_SUMMARY`.
+- Before a workflow change is committed, every file in `.github/workflows/` parses as YAML (see the `ruby -ryaml` command above), and every `run:` line containing `: ` or ` #` is a block scalar (`run: |`).
 
 ## Submission rules
 

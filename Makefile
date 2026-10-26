@@ -18,6 +18,7 @@ demo-build:
 	$(PYTHON) src/previewctl.py prepare --pr 1 --sha a1b2c3d --source dist/pr-1 --target $(DEMO_ROOT)
 	$(PYTHON) src/build_site.py --pr 2 --sha e4f5a6b --out dist/pr-2
 	$(PYTHON) src/previewctl.py prepare --pr 2 --sha e4f5a6b --source dist/pr-2 --target $(DEMO_ROOT)
+	$(PYTHON) src/previewctl.py status --target $(DEMO_ROOT)
 
 demo: demo-build
 	@echo "Open http://localhost:8000/pr-preview/pr-1/ and http://localhost:8000/pr-preview/pr-2/ (Ctrl+C to stop)"

@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -37,11 +38,25 @@ def parse_sha(value: str) -> str:
 
 
 def check_source(source: Path) -> Path:
-    if not source.is_dir():
-        raise ValidationError(f"source {source} is not a folder")
+    if not source.is_dir() or source.is_symlink():
+        raise ValidationError(f"source {source} is not a real folder")
     if not (source / "index.html").is_file():
         raise ValidationError(f"source {source} has no index.html")
+    links = [p for p in source.rglob("*") if p.is_symlink()]
+    if links:
+        raise ValidationError(f"source contains symlinks: {links[0]}")
     return source
+
+
+def preview_path(root: Path, pr: int) -> Path:
+    """Return <root>/pr-preview/pr-<N>, rejecting anything that escapes pr-preview/."""
+    base = root / PREVIEW_DIR
+    if base.is_symlink():
+        raise ValidationError(f"{base} is a symlink")
+    dest = base / f"pr-{pr}"
+    if dest.is_symlink() or not dest.resolve().is_relative_to(base.resolve()):
+        raise ValidationError(f"{dest} resolves outside {base}")
+    return dest
 
 
 def read_manifest(root: Path) -> dict:
@@ -62,14 +77,53 @@ def write_manifest(root: Path, data: dict) -> None:
 
 
 def prepare(root: Path, pr: int, sha: str, source: Path) -> Path:
-    dest = root / PREVIEW_DIR / f"pr-{pr}"
+    dest = preview_path(root, pr)
+    manifest = read_manifest(root)  # last read-only step; a bad manifest exits 2 before any write
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".staging-pr-{pr}-", dir=dest.parent))
+    try:
+        new, old = staging / "new", staging / "old"
+        shutil.copytree(source, new)
+        if dest.exists():
+            dest.rename(old)
+        try:
+            new.rename(dest)
+        except OSError:
+            if old.exists():
+                old.rename(dest)  # restore the previous preview
+            raise
+        updated_at = datetime.now(UTC).isoformat(timespec="seconds")
+        manifest[str(pr)] = {"sha": sha, "updated_at": updated_at}
+        write_manifest(root, manifest)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)  # also deletes the old preview after a swap
+    return dest
+
+
+def remove(root: Path, pr: int) -> str:
+    dest = preview_path(root, pr)
     manifest = read_manifest(root)
+    if not dest.exists() and str(pr) not in manifest:
+        return "absent"
     if dest.exists():
         shutil.rmtree(dest)
-    shutil.copytree(source, dest)
-    manifest[str(pr)] = {"sha": sha, "updated_at": datetime.now(UTC).isoformat(timespec="seconds")}
+    manifest.pop(str(pr), None)
     write_manifest(root, manifest)
-    return dest
+    return "removed"
+
+
+def status(root: Path) -> list[str]:
+    manifest = read_manifest(root)
+    base = root / PREVIEW_DIR
+    lines = []
+    for pr, entry in sorted(manifest.items(), key=lambda kv: int(kv[0])):
+        folder = "ok" if (base / f"pr-{pr}").is_dir() else "missing"
+        lines.append(f"pr={pr} sha={entry['sha']} updated_at={entry['updated_at']} folder={folder}")
+    if base.is_dir():
+        for d in sorted(base.glob("pr-*")):
+            if d.is_dir() and d.name.removeprefix("pr-") not in manifest:
+                lines.append(f"{d.name} folder=untracked")
+    return lines
 
 
 def build_parser() -> Parser:
@@ -80,6 +134,11 @@ def build_parser() -> Parser:
     p.add_argument("--sha", required=True)
     p.add_argument("--source", type=Path, required=True)
     p.add_argument("--target", type=Path, required=True)
+    r = sub.add_parser("remove", help="delete one PR's preview and manifest entry")
+    r.add_argument("--pr", required=True)
+    r.add_argument("--target", type=Path, required=True)
+    s = sub.add_parser("status", help="list previews in the manifest")
+    s.add_argument("--target", type=Path, required=True)
     return parser
 
 
@@ -90,6 +149,14 @@ def main(argv: list[str] | None = None) -> int:
             pr, sha = parse_pr(args.pr), parse_sha(args.sha)
             dest = prepare(args.target, pr, sha, check_source(args.source))
             print(f"prepare pr={pr} sha={sha} path={dest} result=ok")
+        elif args.command == "remove":
+            pr = parse_pr(args.pr)
+            print(f"remove pr={pr} result={remove(args.target, pr)}")
+        elif args.command == "status":
+            lines = status(args.target)
+            if lines:
+                print("\n".join(lines))
+            print(f"status previews={sum(line.startswith('pr=') for line in lines)} result=ok")
     except ValidationError as exc:
         print(f"rejected: {exc}", file=sys.stderr)
         return 1

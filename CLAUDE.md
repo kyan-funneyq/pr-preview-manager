@@ -43,7 +43,7 @@ gh pr view <N> --comments                # preview link comment
 - Pages source: `gh-pages` branch, root, contains `.nojekyll`.
 - Preview folder: `pr-preview/pr-<N>/`. Manifest: `pr-preview/previews.json` = `{"<N>": {"sha": "...", "updated_at": "..."}}`.
 - `previewctl.py` exit codes: `0` success, `1` validation rejected, `2` unexpected error.
-- Workflow: concurrency group `gh-pages`, `cancel-in-progress: false`; permissions `contents: write`, `pull-requests: write`.
+- Workflow: concurrency group `gh-pages`, `cancel-in-progress: false`, `queue: max`; permissions `contents: write`, `pull-requests: write`.
 - Live check: poll every 10s, for at most 5 min, until the page contains the SHA.
 
 ## Code rules

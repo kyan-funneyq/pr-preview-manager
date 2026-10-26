@@ -9,9 +9,11 @@ permissions:
   pull-requests: write
 
 # Every run pushes to the same gh-pages branch, so runs are serialized, never cancelled.
+# queue: max keeps up to 100 waiting runs; the default keeps one and cancels it when another arrives.
 concurrency:
   group: gh-pages
   cancel-in-progress: false
+  queue: max
 
 env:
   PR: ${{ github.event.pull_request.number }}

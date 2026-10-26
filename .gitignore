@@ -1,0 +1,16 @@
+# Local working notes (not part of the submission; see evidence/)
+thoughts/
+
+# Build and demo output
+dist/
+.preview-root/
+
+# Python / tooling
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# OS
+.DS_Store
